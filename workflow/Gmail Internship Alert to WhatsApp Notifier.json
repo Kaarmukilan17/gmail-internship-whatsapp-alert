@@ -1,0 +1,337 @@
+{
+  "name": "Gmail Internship Alert to WhatsApp Notifier",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 1,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "id": "1b3ffd87-f5e2-4b22-86b7-a36d6cd030b7",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        384
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "b3OBTXRgXJKLuSg0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.Subject }}",
+              "rightValue": "intern",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $json.snippet }}",
+              "rightValue": "intern",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "7cc1d8fe-b14e-4e2c-9698-4e7ced6a440e",
+      "name": "Filter Internship Emails",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -96,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "message",
+              "value": "=🔔 Internship Alert\nRole: {{ $json.output?.role || 'CHECK MAIL' }}\nDeadline: {{ $json.output?.deadline || 'NOT FOUND' }}\nReceived: {{ new Date(Number($node['Gmail Trigger'].json['internalDate'])).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) }}\nSubject: {{ $node['Gmail Trigger'].json['Subject'] }}\n\nCheck Gmail for details.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e9d7b9ed-96dc-4360-8c8d-6c7206a566f4",
+      "name": "Format WhatsApp Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.gupshup.io/wa/api/v1/msg",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "channel",
+              "value": "whatsapp"
+            },
+            {
+              "name": "source",
+              "value": "917834811114"
+            },
+            {
+              "name": "destination",
+              "value": "917845514978"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "src.name",
+              "value": "n8nInternshipalert"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1a33c7ee-35ee-4b12-ab58-1345150c71b5",
+      "name": "Send WhatsApp Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        704,
+        528
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "L9YKeD5Xb259IWb4",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "30 21 * * *"
+            }
+          ]
+        }
+      },
+      "id": "520a963c-a25f-405a-97f4-bc069e0de092",
+      "name": "Health Check Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        192,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "message",
+              "value": "=📊 Internship Alert Health Check\n\nDate: {{ $now.toFormat('dd/MM/yyyy', { zone: 'Asia/Kolkata' }) }}\nTime: {{ $now.toFormat('HH:mm', { zone: 'Asia/Kolkata' }) }} IST\n\nStatus: Monitoring active\nWhatsApp delivery: Working\n\nThis is an automated health check to confirm the alert system is running.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "37476471-d08e-4019-b5f4-2de09c20e572",
+      "name": "Format Health Check Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "072ff1ba-6d2b-4f37-9908-ccb1dc9bbb8b",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        496
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "mxoLiK20EcJ9v2z8",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "=Subject: {{ $json.Subject }}\n\nSnippet: {{ $json.snippet }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "role",
+              "description": "The internship role or position mentioned in the email. Identify the role like a human would - look for job titles, positions, or roles being offered. If no clear role is mentioned, return exactly: CHECK MAIL"
+            },
+            {
+              "name": "deadline",
+              "description": "The application deadline if explicitly stated with a clear date. Only extract if a specific date is mentioned. If no deadline is found, return exactly: NOT FOUND"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac63acfd-6455-4d24-8678-47c514fd5d6c",
+      "name": "Extract Role and Deadline",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        128,
+        272
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter Internship Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Check Schedule": {
+      "main": [
+        [
+          {
+            "node": "Format Health Check Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Health Check Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Internship Emails": {
+      "main": [
+        [
+          {
+            "node": "Extract Role and Deadline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Role and Deadline",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Role and Deadline": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "bee103b8-dbdd-4474-a1e1-382caffd35e3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "54799820a9137b817afdbc22134d7f26c3a2af6e3df5fd9a2ef10a3cea489e15"
+  },
+  "id": "yjhglWPfp0zoTQxU",
+  "tags": []
+}
