@@ -53,6 +53,49 @@ A **separate scheduled workflow** sends daily health-check messages to confirm t
 
 ---
 
+<details>
+<summary><strong>Credentials Configuration</strong></summary>
+
+
+## Credentials Configuration
+
+### Gmail (Email Monitoring)
+
+* Gmail account used: **college email inbox**
+* Authentication method: OAuth 2.0
+* Gmail API is used to monitor incoming emails
+
+**High-level steps:**
+
+1. Create a Google Cloud project
+2. Enable Gmail API
+3. Configure OAuth consent screen
+4. Create OAuth 2.0 Client ID (Web application)
+5. Add redirect URI:
+
+   ```
+   http://localhost:5678/rest/oauth2-credential/callback
+   ```
+6. Add Client ID and Client Secret to n8n
+7. Authorize access using the monitored Gmail account
+
+---
+
+### WhatsApp (Message Delivery)
+
+* Messages are sent using an HTTP-based WhatsApp provider
+* Configuration uses an HTTP Request node in n8n
+* Authentication is handled using API keys in request headers
+
+**Required values:**
+
+* API endpoint URL
+* Authorization key or token
+* Destination phone number
+
+
+---
+</details>
 
 ## Repository Structure
 
@@ -77,7 +120,126 @@ A **separate scheduled workflow** sends daily health-check messages to confirm t
 
 ---
 
-## Future Improvements (Optional)
+
+
+
+
+## Local Migration (Self-Hosted n8n)
+
+This project was originally built using **n8n Cloud** and later migrated to a **fully local self-hosted n8n setup** using Docker.
+
+### Why Local Migration?
+
+The local setup was introduced to:
+
+* Avoid cloud usage limits
+* Retain full control over credentials and data
+* Enable offline development and debugging
+* Ensure long-term reliability without dependency on hosted plans
+
+<details>
+<summary><strong>More on Local setup</strong></summary>
+
+
+### Local Setup Overview
+
+In the local version:
+
+* n8n runs inside a Docker container
+* Workflow data is persisted using a local volume
+* Gmail and WhatsApp integrations remain unchanged in logic
+* System-level automation is added to manage Docker startup
+
+---
+
+### Local Architecture
+
+```
+Windows OS
+ ├── Docker Desktop (WSL2 backend)
+ │    └── n8n container
+ │         ├── Workflows
+ │         ├── Credentials
+ │         └── SQLite database
+ │
+ ├── Local control scripts
+ │    └── Start / Stop automation
+ │
+ └── Browser
+      └── http://localhost:5678
+```
+
+---
+
+### Why Extra Startup Logic Was Needed
+
+After a system reboot:
+
+* Docker Desktop does not start automatically
+* Docker Engine is not immediately available
+* Any Docker command fails until the engine is ready
+
+To solve this, a local control script was added that:
+
+* Launches Docker Desktop if not running
+* Waits until Docker Engine is fully ready
+* Starts or stops the n8n container
+* Opens the browser automatically once n8n is accessible
+
+This ensures **one-click reliability**, even after a cold reboot.
+
+## Local n8n Setup
+
+### Prerequisites
+
+* Windows 10/11
+* Docker Desktop (WSL2 enabled)
+* PowerShell
+* Internet access (for Gmail / WhatsApp APIs)
+
+---
+
+### Step 1: Install Docker Desktop
+
+* Install Docker Desktop for Windows
+* Enable WSL2 backend
+* Ensure Docker Desktop can run Linux containers
+
+---
+
+### Step 2: Start Local n8n
+
+Use the provided local control script to start n8n:
+
+```
+local-control/n8n-control.bat
+```
+
+Once started, n8n will be available at:
+
+```
+http://localhost:5678
+```
+
+---
+
+</details>
+
+
+
+
+
+<details>
+<summary><strong>Improvements</strong></summary>
+
+## Possible Improvements
+
+* Automatic startup on Windows login
+* Background execution without terminal window
+* System tray toggle
+* Enhanced logging and alert health checks
+* Workflow backup and versioning
+
 
 * Full email body parsing (paid Gmail API)
 * Database-backed daily summaries
@@ -85,6 +247,19 @@ A **separate scheduled workflow** sends daily health-check messages to confirm t
 * Role categorization and prioritization
 * Company name normalization
 
+
+
+### Language Model Integration (Optional)
+
+The workflow supports optional structured information extraction using an external language model.
+
+* API credentials are configured inside n8n
+* Workflow execution does not depend on this step
+* Message delivery continues even if this step is unavailable
+
+
+
+</details>
 
 <details>
 <summary><strong>Limitations</strong></summary>
@@ -165,3 +340,5 @@ Credentials must be reconnected manually for security reasons.
 
 ---
 </details>
+
+
