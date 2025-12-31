@@ -4,7 +4,7 @@ $dockerDesktop = "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
 $dockerPipe = "\\.\pipe\dockerDesktopLinuxEngine"
 
 function Docker-IsReady {
-    return Test-Path $dockerPipe
+    Test-Path $dockerPipe
 }
 
 function Wait-ForDocker {
@@ -15,9 +15,12 @@ function Wait-ForDocker {
     Write-Host "Docker engine is ready." -ForegroundColor Green
 }
 
-function Is-N8nRunning {
-    $id = docker ps -q --filter "name=$containerName" 2>$null
-    return -not [string]::IsNullOrWhiteSpace($id)
+function N8n-Running {
+    docker ps -q --filter "name=^/$containerName$" 2>$null
+}
+
+function N8n-Exists {
+    docker ps -aq --filter "name=^/$containerName$" 2>$null
 }
 
 # ---- ENSURE DOCKER ENGINE ----
@@ -27,22 +30,29 @@ if (-not (Docker-IsReady)) {
     Wait-ForDocker
 }
 
-# ---- TOGGLE n8n ----
-if (Is-N8nRunning) {
+# ---- TOGGLE LOGIC ----
+$running = N8n-Running
+$exists  = N8n-Exists
+
+if ($running) {
     Write-Host "Stopping n8n..." -ForegroundColor Red
     docker stop $containerName | Out-Null
-    docker rm $containerName | Out-Null
     Write-Host "n8n stopped." -ForegroundColor Green
     exit
 }
 
-Write-Host "Starting n8n container..." -ForegroundColor Cyan
-
-docker run -d `
-    --name $containerName `
-    -p 5678:5678 `
-    -v C:\n8n:/home/node/.n8n `
-    n8nio/n8n | Out-Null
+if ($exists) {
+    Write-Host "Starting existing n8n container..." -ForegroundColor Cyan
+    docker start $containerName | Out-Null
+}
+else {
+    Write-Host "Creating new n8n container..." -ForegroundColor Cyan
+    docker run -d `
+        --name $containerName `
+        -p 5678:5678 `
+        -v C:\n8n:/home/node/.n8n `
+        n8nio/n8n | Out-Null
+}
 
 Write-Host "Waiting for n8n to be ready..." -ForegroundColor Yellow
 while (-not (Test-NetConnection 127.0.0.1 -Port 5678 -InformationLevel Quiet)) {
